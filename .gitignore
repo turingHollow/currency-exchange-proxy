@@ -1,0 +1,16 @@
+*.log
+.idea
+out/
+dev.env
+target/
+logs
+.DS_Store
+.bloop
+.vscode
+.metals
+.bsp
+.env
+project/project/project/metals.sbt
+project/project/metals.sbt
+project/metals.sbt
+/.bsp/sbt.json
