@@ -1,4 +1,4 @@
-import Dependencies._
+import Dependencies.*
 
 name := "currency-exchange-proxy"
 version := "1.0.0"
@@ -53,6 +53,7 @@ libraryDependencies ++= Seq(
   compilerPlugin(Libraries.kindProjector),
   Libraries.cats,
   Libraries.catsEffect,
+  Libraries.log4cats,
   Libraries.fs2,
   Libraries.http4sDsl,
   Libraries.http4sServer,

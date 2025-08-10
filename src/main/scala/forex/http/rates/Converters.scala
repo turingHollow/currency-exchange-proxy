@@ -1,6 +1,7 @@
 package forex.http.rates
 
 import forex.domain._
+import forex.programs.rates.errors.{Error => RatesProgramError}
 
 object Converters {
   import Protocol._
@@ -13,6 +14,13 @@ object Converters {
         price = rate.price,
         timestamp = rate.timestamp
       )
+  }
+
+  private[rates] implicit class GetApiErrorOps(val rateError: RatesProgramError) extends AnyVal {
+    def asGetApiError: GetApiError =
+      rateError match {
+        case RatesProgramError.RateLookupFailed(msg) => GetApiError(s"Rate lookup failed with reason: $msg")
+      }
   }
 
 }

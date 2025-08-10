@@ -12,10 +12,12 @@ object Protocol {
 
   implicit val configuration: Configuration = Configuration.default.withSnakeCaseMemberNames
 
-  final case class GetApiRequest(
-      from: Currency,
-      to: Currency
+  final case class GetApiError(
+      error: String
   )
+
+  implicit val errorEncoder: Encoder[GetApiError] =
+    deriveConfiguredEncoder[GetApiError]
 
   final case class GetApiResponse(
       from: Currency,

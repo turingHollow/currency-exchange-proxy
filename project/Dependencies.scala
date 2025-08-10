@@ -1,10 +1,11 @@
-import sbt._
+import sbt.*
 
 object Dependencies {
 
   object Versions {
     val cats = "2.6.1"
     val catsEffect = "3.5.4"
+    val log4cats = "2.7.1"
     val fs2 = "3.12.0"
     val http4s = "0.23.17"
     val circe = "0.14.2"
@@ -26,6 +27,8 @@ object Dependencies {
 
     lazy val cats = "org.typelevel" %% "cats-core" % Versions.cats
     lazy val catsEffect = "org.typelevel" %% "cats-effect" % Versions.catsEffect
+    lazy val log4cats = "org.typelevel" %% "log4cats-slf4j" % Versions.log4cats
+
     lazy val fs2 = "co.fs2" %% "fs2-core" % Versions.fs2
 
     lazy val http4sDsl = http4s("http4s-dsl")

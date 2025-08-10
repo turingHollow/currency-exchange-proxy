@@ -3,6 +3,7 @@ package forex.programs.cacheUpdate
 import forex.services.{CachingServiceWrites, RatesService}
 import fs2.Stream
 import cats.effect.Temporal
+import cats.implicits.toFlatMapOps
 import forex.domain.Rate.Pair
 import forex.domain.{Currency, Rate}
 
@@ -19,15 +20,15 @@ class Program[F[_]: Temporal](
       b <- Currency.values if a != b
     } yield Pair(a, b)
 
+  private val updateRates =
+    ratesService
+      .get(everySupportedPair)
+      .flatMap(l => cachingService.update(l.map(rate => rate.pair -> rate).toMap))
+
   override def updatingStream: fs2.Stream[F, Unit] =
-    Stream
+    Stream.eval(updateRates) ++ Stream
       .awakeEvery[F](4.minutes)
-      .evalMap(_ => ratesService.get(everySupportedPair))
-      .evalMap(ratesList =>
-        cachingService.update(
-          ratesList.map(rate => rate.pair -> rate).toMap
-        )
-      )
+      .evalMap(_ => updateRates)
 }
 
 object Program {
