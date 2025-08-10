@@ -48,21 +48,43 @@ an in-memory cache whenever data is needed, honoring a 5-minute TTL. This approa
 pairs fresh together, as the provider’s api batch endpoint and the daily quota allow it.
 
 ## More complex solution to support a large set of currencies.
-As it is not possible to retrieve the whole list of rates for a large set a possible solution is to retrieve all pairs with USD and 
+
+As it is not possible to retrieve the whole list of rates for a large set a possible solution is to retrieve all pairs
+with USD and
 compute the rest of the rates on demand, using cross-rate calculation.
-   You can get "JPY" → "GBP" if you know:
-   "JPY" → "USD"
-   "USD" → "GBP"
-   Let’s pretend we have:
-   JPY→USD: bid = 0.0068, ask = 0.0069
-   USD→GBP: bid = 0.7900, ask = 0.7910
-   Then:
-   JPY→GBP bid  = 0.0068 × 0.7900 = 0.005372
-   JPY→GBP ask  = 0.0069 × 0.7910 = 0.005468
+You can get "JPY" → "GBP" if you know:
+"JPY" → "USD"
+"USD" → "GBP"
+Let’s pretend we have:
+JPY→USD: bid = 0.0068, ask = 0.0069
+USD→GBP: bid = 0.7900, ask = 0.7910
+Then:
+JPY→GBP bid = 0.0068 × 0.7900 = 0.005372
+JPY→GBP ask = 0.0069 × 0.7910 = 0.005468
 So it is possible to compute all pairs using only information about all 160 pairs with USD.
 
 ## Implementation
 
 For now, I'm going to use a simple caching solution. But can implement the more complex solution if needed.
 
+I used a simple Map wrapped in a Ref to ensure safe, concurrent data access and updates.
+I separated the logic for serving data from the cache and the logic for updating the cache into two distinct components.
+This separation of concerns makes the system easier to reason about and also enables the possibility of deploying these
+parts of the application independently in the future for better scalability.
+
+## Local run
+
+Start docker container with OneFrame
+
+pull the image
+`docker pull paidyinc/one-frame:latest`
+
+run the service
+`docker run -p 8080:8080 paidyinc/one-frame`
+
+run app
+`sbt run`
+
+send request to app
+`curl 'localhost:8090/rates?from=USD&to=JPY'`
 
