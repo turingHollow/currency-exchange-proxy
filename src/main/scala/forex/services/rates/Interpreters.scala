@@ -1,8 +1,11 @@
 package forex.services.rates
 
-import cats.Applicative
-import interpreters._
+import cats.effect.Concurrent
+import forex.config.OneFrameConfig
+import forex.services.rates.interpreters.oneFrame.OneFrameRatesService
+import org.http4s.client.Client
 
 object Interpreters {
-  def dummy[F[_]: Applicative]: Algebra[F] = new OneFrameDummy[F]()
+  def oneFrame[F[_]: Concurrent](client: Client[F], config: OneFrameConfig): Algebra[F] =
+    new OneFrameRatesService[F](client, config)
 }

@@ -1,19 +1,32 @@
 package forex.domain
 
 import cats.Show
+import enumeratum._
+import enumeratum.EnumEntry
+import enumeratum.EnumEntry.Uppercase
 
-sealed trait Currency
+sealed trait Currency extends EnumEntry
 
-object Currency {
+object Currency extends Enum[Currency] with Uppercase with CirceEnum[Currency] {
   case object AUD extends Currency
+
   case object CAD extends Currency
+
   case object CHF extends Currency
+
   case object EUR extends Currency
+
   case object GBP extends Currency
+
   case object NZD extends Currency
+
   case object JPY extends Currency
+
   case object SGD extends Currency
+
   case object USD extends Currency
+
+  val values: IndexedSeq[Currency] = findValues
 
   implicit val show: Show[Currency] = Show.show {
     case AUD => "AUD"

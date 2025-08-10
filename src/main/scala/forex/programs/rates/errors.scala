@@ -1,15 +1,16 @@
 package forex.programs.rates
 
-import forex.services.rates.errors.{ Error => RatesServiceError }
+import forex.services.caching.errors.{Error => CachingServiceError}
 
 object errors {
 
   sealed trait Error extends Exception
+
   object Error {
     final case class RateLookupFailed(msg: String) extends Error
   }
 
-  def toProgramError(error: RatesServiceError): Error = error match {
-    case RatesServiceError.OneFrameLookupFailed(msg) => Error.RateLookupFailed(msg)
+  def toProgramError(error: CachingServiceError): Error = error match {
+    case CachingServiceError.CacheMiss(msg) => Error.RateLookupFailed(msg)
   }
 }
