@@ -8,8 +8,13 @@ import fs2.Stream
 import fs2.io.net.Network
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
+import org.typelevel.log4cats.LoggerFactory
 
-class CacheUpdater[F[_]: Async](config: ApplicationConfig, client: Client[F], cachingService: CachingServiceWrites[F]) {
+class CacheUpdater[F[_]: Async: LoggerFactory](
+    config: ApplicationConfig,
+    client: Client[F],
+    cachingService: CachingServiceWrites[F]
+) {
 
   private val ratesService: RatesService[F] = RatesServices.oneFrame[F](client, config.oneFrame)
 
@@ -20,7 +25,7 @@ class CacheUpdater[F[_]: Async](config: ApplicationConfig, client: Client[F], ca
 }
 
 object CacheUpdater {
-  def resource[F[_]: Async: Network](
+  def resource[F[_]: Async: LoggerFactory: Network](
       config: ApplicationConfig,
       cachingService: CachingServiceWrites[F]
   ): Resource[F, CacheUpdater[F]] =

@@ -32,6 +32,8 @@ class Application[F[_]: Async: Network: LoggerFactory] {
         .withHttpApp(app.http)
         .serve
         .concurrently(cacheUpdater.stream)
-        .handleErrorWith(e => Stream.eval(logger.error(e)("Unhandled error")))
+        .handleErrorWith(e =>
+          Stream.eval(logger.error(e)("Unhandled error"))
+        )
     } yield ()
 }
