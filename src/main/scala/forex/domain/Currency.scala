@@ -4,10 +4,12 @@ import cats.Show
 import enumeratum._
 import enumeratum.EnumEntry
 import enumeratum.EnumEntry.Uppercase
+import forex.domain.Rate.Pair
 
 sealed trait Currency extends EnumEntry
 
 object Currency extends Enum[Currency] with Uppercase with CirceEnum[Currency] {
+
   case object AUD extends Currency
 
   case object CAD extends Currency
@@ -27,6 +29,12 @@ object Currency extends Enum[Currency] with Uppercase with CirceEnum[Currency] {
   case object USD extends Currency
 
   val values: IndexedSeq[Currency] = findValues
+
+  val everySupportedPair: IndexedSeq[Rate.Pair] =
+    for {
+      a <- Currency.values
+      b <- Currency.values if a != b
+    } yield Pair(a, b)
 
   implicit val show: Show[Currency] = Show.show {
     case AUD => "AUD"

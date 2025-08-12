@@ -7,25 +7,21 @@ import forex.domain.Rate
 import forex.services.rates.Algebra
 import forex.services.rates.interpreters.oneFrame.Converters.OneFrameRateResponseOps
 import forex.services.rates.interpreters.oneFrame.Protocol.OneFrameRateResponse
+import forex.services.rates.errors.Error
 import org.http4s.{Header, Headers, Method, Request}
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 import org.typelevel.ci.CIString
-import org.typelevel.log4cats.LoggerFactory
 
-class OneFrameRatesService[F[_]: Temporal: LoggerFactory](client: Client[F], config: OneFrameConfig)
-    extends Algebra[F] {
-
-  private val logger = LoggerFactory.getLogger[F]
+class OneFrameRatesService[F[_]: Temporal](client: Client[F], config: OneFrameConfig) extends Algebra[F] {
 
   private val ratesUri = config.url / "rates"
 
-  def get(pairs: Seq[Rate.Pair]): F[Option[List[Rate]]] = {
-    val pairsStrings = pairs.map(p => p.from.toString + p.to.toString)
-    val uriWithQuery = ratesUri.withQueryParam("pair", pairsStrings)
+  def get(pairs: Seq[Rate.Pair]): F[Error Either List[Rate]] = {
+    val pairsStrings = pairs.map(p => p.from.show + p.to.show)
     val request: Request[F] = Request[F](
       method = Method.GET,
-      uri = uriWithQuery,
+      uri = ratesUri.withQueryParam("pair", pairsStrings),
       headers = Headers(
         Header.Raw(CIString("Token"), s"${config.token}")
       )
@@ -35,17 +31,13 @@ class OneFrameRatesService[F[_]: Temporal: LoggerFactory](client: Client[F], con
       resultAttempt <- client
         .expect[List[OneFrameRateResponse]](request)
         .attempt
-      _ <- resultAttempt.fold(
-        e => logger.warn(s"Http $request failed with error: $e"),
-        result => logger.info(s"Http request succeeded result: $result")
-      )
-    } yield resultAttempt.toOption.map(_.map(_.toDomain))
+    } yield resultAttempt.leftMap(e => Error.OneFrameLookupFailed(e.toString)) map (_.map(_.toDomain))
 
   }
 }
 
 object OneFrameRatesService {
-  def apply[F[_]: Temporal: LoggerFactory](
+  def apply[F[_]: Temporal](
       client: Client[F],
       config: OneFrameConfig
   ) = new OneFrameRatesService(client, config)

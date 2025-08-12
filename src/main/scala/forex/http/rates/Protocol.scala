@@ -8,16 +8,20 @@ import io.circe._
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto.deriveConfiguredEncoder
 
+import java.time.Instant
+
 object Protocol {
 
   implicit val configuration: Configuration = Configuration.default.withSnakeCaseMemberNames
 
   final case class GetApiError(
-      error: String
+      error: String,
+      fallbackData: Option[Rate] = None,
+      lastUpdated: Option[Instant] = None
   )
 
   implicit val errorEncoder: Encoder[GetApiError] =
-    deriveConfiguredEncoder[GetApiError]
+    deriveConfiguredEncoder[GetApiError].mapJson(_.dropNullValues)
 
   final case class GetApiResponse(
       from: Currency,

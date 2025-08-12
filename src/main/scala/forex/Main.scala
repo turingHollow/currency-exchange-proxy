@@ -7,7 +7,7 @@ import forex.services.CachingServices
 import fs2.Stream
 import fs2.io.net.Network
 import org.http4s.blaze.server.BlazeServerBuilder
-import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.log4cats.{LoggerFactory, SelfAwareStructuredLogger}
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 object Main extends IOApp {
@@ -19,7 +19,7 @@ object Main extends IOApp {
 
 class Application[F[_]: Async: Network: LoggerFactory] {
 
-  val logger = LoggerFactory[F].getLogger
+  val logger: SelfAwareStructuredLogger[F] = LoggerFactory[F].getLogger
 
   def stream: Stream[F, Unit] =
     for {
@@ -32,8 +32,6 @@ class Application[F[_]: Async: Network: LoggerFactory] {
         .withHttpApp(app.http)
         .serve
         .concurrently(cacheUpdater.stream)
-        .handleErrorWith(e =>
-          Stream.eval(logger.error(e)("Unhandled error"))
-        )
+        .handleErrorWith(e => Stream.eval(logger.error(e)("Unhandled error")))
     } yield ()
 }

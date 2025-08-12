@@ -15,7 +15,6 @@ class Program[F[_]: Functor](
       .leftMap(errors.toProgramError)
       .value
   }
-
 }
 
 object Program {
@@ -23,5 +22,4 @@ object Program {
   def apply[F[_]: Functor](
       cachingService: CachingServiceReads[F]
   ): Algebra[F] = new Program[F](cachingService)
-
 }

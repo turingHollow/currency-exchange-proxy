@@ -1,40 +1,56 @@
 package forex.programs.cacheUpdate
 
-import cats.data.OptionT
+import cats.data.EitherT
 import forex.services.{CachingServiceWrites, RatesService}
 import fs2.Stream
 import cats.effect.Temporal
-import cats.implicits._
-import forex.domain.Rate.Pair
-import forex.domain.{Currency, Rate}
+import forex.domain.Currency
+import forex.services.rates.errors.Error
+import org.typelevel.log4cats.LoggerFactory
 
 import scala.concurrent.duration.DurationInt
 
-class Program[F[_]: Temporal](
+class Program[F[_]: Temporal: LoggerFactory](
     cachingService: CachingServiceWrites[F],
     ratesService: RatesService[F]
 ) extends Algebra[F] {
 
-  private val everySupportedPair: IndexedSeq[Rate.Pair] =
-    for {
-      a <- Currency.values
-      b <- Currency.values if a != b
-    } yield Pair(a, b)
+  private val logger = LoggerFactory.getLogger[F]
 
-  private val updateRates =
+  private val updateRates: F[Error Either Unit] =
     (for {
-      maybeData <- OptionT(ratesService.get(everySupportedPair))
-      _ <- OptionT.liftF(cachingService.update(maybeData.map(rate => rate.pair -> rate).toMap))
-    } yield ()).value.void
+      maybeData <- EitherT(ratesService.get(Currency.everySupportedPair))
+      _ <- EitherT.liftF[F, Error, Unit](cachingService.update(maybeData.map(rate => rate.pair -> rate).toMap))
+    } yield ()).value
 
-  override def updatingStream: fs2.Stream[F, Unit] =
-    Stream.eval(updateRates) ++ Stream
-      .awakeEvery[F](4.minutes)
-      .evalMap(_ => updateRates)
+  override def updatingStream: fs2.Stream[F, Unit] = {
+    def handleError(error: Error): fs2.Stream[F, Unit] = {
+      val errorMsg = error match {
+        case e: Error.OneFrameLookupFailed => s"Can't update rates: ${e.msg}"
+      }
+      Stream.eval(logger.error(errorMsg)) >>
+        Stream.sleep[F](5.seconds) >>
+        updatingStream
+    }
+
+    def processUpdate: fs2.Stream[F, Unit] =
+      Stream.eval(updateRates).flatMap {
+        case Left(error) => handleError(error)
+        case Right(_)    => Stream.eval(logger.info("Rates updated successfully"))
+      }
+
+    processUpdate >>
+      Stream
+        .awakeEvery[F](4.minutes)
+        .flatMap(_ => processUpdate)
+  }
 }
 
 object Program {
 
-  def apply[F[_]: Temporal](cachingService: CachingServiceWrites[F], ratesService: RatesService[F]): Algebra[F] =
+  def apply[F[_]: Temporal: LoggerFactory](
+      cachingService: CachingServiceWrites[F],
+      ratesService: RatesService[F]
+  ): Algebra[F] =
     new Program[F](cachingService, ratesService)
 }

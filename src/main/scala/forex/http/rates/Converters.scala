@@ -1,5 +1,6 @@
 package forex.http.rates
 
+import cats.implicits.catsSyntaxOptionId
 import forex.domain._
 import forex.programs.rates.errors.{Error => RatesProgramError}
 
@@ -20,6 +21,8 @@ object Converters {
     def asGetApiError: GetApiError =
       rateError match {
         case RatesProgramError.RateLookupFailed(msg) => GetApiError(s"Rate lookup failed with reason: $msg")
+        case RatesProgramError.RateLookupOutdated(msg, staleData, lastUpdated) =>
+          GetApiError(s"Stale data fetched with reason: $msg", staleData.some, lastUpdated.some)
       }
   }
 
