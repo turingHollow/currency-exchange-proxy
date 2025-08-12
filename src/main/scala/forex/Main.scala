@@ -24,7 +24,7 @@ class Application[F[_]: Async: Network: LoggerFactory] {
   def stream: Stream[F, Unit] =
     for {
       config <- Config.stream("app")
-      cachingService <- Stream.resource(CachingServices.inMemory[F])
+      cachingService <- Stream.resource(CachingServices.inMemory[F](config.caching))
       cacheUpdater <- Stream.resource(CacheUpdater.resource[F](config, cachingService))
       app = App[F](config, cachingService)
       _ <- BlazeServerBuilder[F]

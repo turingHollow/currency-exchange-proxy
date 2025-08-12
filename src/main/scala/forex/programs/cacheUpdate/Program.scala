@@ -9,7 +9,7 @@ import forex.domain.Currency
 import forex.services.rates.errors.Error
 import org.typelevel.log4cats.LoggerFactory
 
-import scala.concurrent.duration.{DurationInt, DurationLong}
+import scala.concurrent.duration.DurationLong
 
 class Program[F[_]: Temporal: LoggerFactory](
     cachingService: CachingServiceWrites[F],

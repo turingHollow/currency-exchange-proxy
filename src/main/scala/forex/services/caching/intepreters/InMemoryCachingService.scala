@@ -9,7 +9,6 @@ import forex.services.caching.errors.Error.{CacheMiss, StaleData}
 import forex.services.caching.errors._
 
 import java.time.Instant
-import scala.concurrent.duration.DurationLong
 
 final class InMemoryCachingService[F[_]: Temporal] private (
     ref: Ref[F, (Map[Rate.Pair, Rate], Instant)],
@@ -17,16 +16,16 @@ final class InMemoryCachingService[F[_]: Temporal] private (
 ) extends Algebra[F] {
 
   def get(pair: Rate.Pair): F[Error Either Rate] =
-    ref.get.map { case (dataMap, lastUpdated) =>
-      val now = Instant.now()
-      val isFresh = lastUpdated.minusMillis(ttlMillis).isAfter(now)
-      dataMap.get(pair) match {
-        case Some(value) if isFresh => Right(value)
-        case Some(value)            => Left(StaleData("Data haven't been updated", value, lastUpdated))
-        case None                   => Left(CacheMiss("Data not found"))
+    Temporal[F].realTimeInstant.flatMap(now =>
+      ref.get.map { case (dataMap, lastUpdated) =>
+        val isFresh = lastUpdated.plusMillis(ttlMillis).isAfter(now)
+        dataMap.get(pair) match {
+          case Some(value) if isFresh => Right(value)
+          case Some(value)            => Left(StaleData("Data haven't been updated", value, lastUpdated))
+          case None                   => Left(CacheMiss("Data not found"))
+        }
       }
-
-    }
+    )
 
   override def update(newData: Map[Rate.Pair, Rate]): F[Unit] =
     for {
@@ -38,8 +37,9 @@ final class InMemoryCachingService[F[_]: Temporal] private (
 object InMemoryCachingService {
   def resource[F[_]: Temporal](cachingConfig: CachingConfig): Resource[F, InMemoryCachingService[F]] =
     for {
+      now <- Resource.eval(Temporal[F].realTimeInstant)
       ref <- Resource.eval(
-        Ref.of[F, (Map[Rate.Pair, Rate], Instant)]((Map.empty, Instant.EPOCH))
+        Ref.of[F, (Map[Rate.Pair, Rate], Instant)]((Map.empty, now))
       )
       cache = new InMemoryCachingService[F](ref, cachingConfig.ttlMillis)
     } yield cache

@@ -18,7 +18,7 @@ class CacheUpdater[F[_]: Async: LoggerFactory](
 
   private val ratesService: RatesService[F] = RatesServices.oneFrame[F](client, config.oneFrame)
 
-  private val cacheProgram: CacheProgram[F] = CacheProgram[F](cachingService, ratesService)
+  private val cacheProgram: CacheProgram[F] = CacheProgram[F](cachingService, ratesService, config.caching)
 
   val stream: Stream[F, Unit] = cacheProgram.updatingStream
 

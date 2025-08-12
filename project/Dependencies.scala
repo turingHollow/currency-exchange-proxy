@@ -16,6 +16,7 @@ object Dependencies {
     val logback = "1.2.3"
     val scalaCheck = "1.15.3"
     val scalaTest = "3.2.7"
+    val scalaTestCatsEffect = "1.6.0"
     val catsScalaCheck = "0.3.2"
   }
 
@@ -56,6 +57,7 @@ object Dependencies {
 
     // Test
     lazy val scalaTest = "org.scalatest" %% "scalatest" % Versions.scalaTest
+    lazy val scalaTestCatsEffect = "org.typelevel" %% "cats-effect-testing-scalatest" % Versions.scalaTestCatsEffect
     lazy val scalaCheck = "org.scalacheck" %% "scalacheck" % Versions.scalaCheck
     lazy val catsScalaCheck =
       "io.chrisdavenport" %% "cats-scalacheck" % Versions.catsScalaCheck
