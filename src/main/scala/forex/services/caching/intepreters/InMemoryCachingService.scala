@@ -2,22 +2,24 @@ package forex.services.caching.intepreters
 
 import cats.effect._
 import cats.implicits._
+import forex.config.CachingConfig
 import forex.domain.Rate
 import forex.services.caching.Algebra
 import forex.services.caching.errors.Error.{CacheMiss, StaleData}
 import forex.services.caching.errors._
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
+import scala.concurrent.duration.DurationLong
 
 final class InMemoryCachingService[F[_]: Temporal] private (
-    ref: Ref[F, (Map[Rate.Pair, Rate], Instant)]
+    ref: Ref[F, (Map[Rate.Pair, Rate], Instant)],
+    ttlMillis: Long
 ) extends Algebra[F] {
 
   def get(pair: Rate.Pair): F[Error Either Rate] =
     ref.get.map { case (dataMap, lastUpdated) =>
       val now = Instant.now()
-      val isFresh = lastUpdated.plus(5, ChronoUnit.MINUTES).isAfter(now)
+      val isFresh = lastUpdated.minusMillis(ttlMillis).isAfter(now)
       dataMap.get(pair) match {
         case Some(value) if isFresh => Right(value)
         case Some(value)            => Left(StaleData("Data haven't been updated", value, lastUpdated))
@@ -34,11 +36,11 @@ final class InMemoryCachingService[F[_]: Temporal] private (
 }
 
 object InMemoryCachingService {
-  def resource[F[_]: Temporal]: Resource[F, InMemoryCachingService[F]] =
+  def resource[F[_]: Temporal](cachingConfig: CachingConfig): Resource[F, InMemoryCachingService[F]] =
     for {
       ref <- Resource.eval(
         Ref.of[F, (Map[Rate.Pair, Rate], Instant)]((Map.empty, Instant.EPOCH))
       )
-      cache = new InMemoryCachingService[F](ref)
+      cache = new InMemoryCachingService[F](ref, cachingConfig.ttlMillis)
     } yield cache
 }

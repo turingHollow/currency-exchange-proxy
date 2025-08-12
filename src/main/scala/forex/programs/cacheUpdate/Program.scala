@@ -4,15 +4,17 @@ import cats.data.EitherT
 import forex.services.{CachingServiceWrites, RatesService}
 import fs2.Stream
 import cats.effect.Temporal
+import forex.config.CachingConfig
 import forex.domain.Currency
 import forex.services.rates.errors.Error
 import org.typelevel.log4cats.LoggerFactory
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, DurationLong}
 
 class Program[F[_]: Temporal: LoggerFactory](
     cachingService: CachingServiceWrites[F],
-    ratesService: RatesService[F]
+    ratesService: RatesService[F],
+    cachingConfig: CachingConfig
 ) extends Algebra[F] {
 
   private val logger = LoggerFactory.getLogger[F]
@@ -29,7 +31,7 @@ class Program[F[_]: Temporal: LoggerFactory](
         case e: Error.OneFrameLookupFailed => s"Can't update rates: ${e.msg}"
       }
       Stream.eval(logger.error(errorMsg)) >>
-        Stream.sleep[F](5.seconds) >>
+        Stream.sleep[F](cachingConfig.retryDelayMillis.millis) >>
         updatingStream
     }
 
@@ -41,7 +43,7 @@ class Program[F[_]: Temporal: LoggerFactory](
 
     processUpdate >>
       Stream
-        .awakeEvery[F](4.minutes)
+        .awakeEvery[F](cachingConfig.updateDelayMillis.millis)
         .flatMap(_ => processUpdate)
   }
 }
@@ -50,7 +52,8 @@ object Program {
 
   def apply[F[_]: Temporal: LoggerFactory](
       cachingService: CachingServiceWrites[F],
-      ratesService: RatesService[F]
+      ratesService: RatesService[F],
+      cachingConfig: CachingConfig
   ): Algebra[F] =
-    new Program[F](cachingService, ratesService)
+    new Program[F](cachingService, ratesService, cachingConfig)
 }

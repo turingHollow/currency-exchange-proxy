@@ -4,6 +4,7 @@ import cats.effect.Sync
 import fs2.Stream
 
 import pureconfig.ConfigSource
+import forex.config.CachingConfig.cachingConfigReader
 import pureconfig.module.http4s._
 import pureconfig.generic.auto._
 
